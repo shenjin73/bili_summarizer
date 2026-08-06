@@ -12,7 +12,7 @@ triggers:
 
 ## Overview
 
-Use the `bili_summarizer` CLI in `/Users/jin/Projects/bili_summarizer` to
+Use the `bili_summarizer` CLI in `bili_summarizer` to
 fetch video content and generate a structured Chinese summary.
 
 ## Workflow
@@ -20,7 +20,7 @@ fetch video content and generate a structured Chinese summary.
 ### Step 1 — Run the fetcher
 
 ```bash
-cd /Users/jin/Projects/bili_summarizer
+cd bili_summarizer
 python3 -m bili_summarizer.main "<url_or_bvid>"
 ```
 
@@ -60,7 +60,7 @@ with evidence, important data points, and overall assessment.
 - `mlx-whisper` — Apple Silicon Whisper for audio transcription
 - LLM backend (auto-detected from env vars): Anthropic, DeepSeek, MiniMax,
   OpenAI, or any OpenAI-compatible API
-- API key configured in `/Users/jin/Projects/bili_summarizer/.env`
+- API key configured in `bili_summarizer/.env`
 
 ## Output location
 

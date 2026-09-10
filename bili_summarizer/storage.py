@@ -4,8 +4,9 @@ import json
 import os
 from pathlib import Path
 
-# Root directory where all video data is stored
-ROOT = Path(__file__).resolve().parent.parent / "videos"
+# Root directory where all video data is stored. Override with the
+# VIDEOS_ROOT env var (e.g. for A/B comparison runs into separate trees).
+ROOT = Path(os.environ.get("VIDEOS_ROOT") or (Path(__file__).resolve().parent.parent / "videos"))
 
 
 def video_dir(bvid: str, creator: str | None = None) -> Path:
@@ -64,6 +65,22 @@ def save_summary(bvid: str, text: str, creator: str | None = None) -> Path:
     """Save the markdown summary."""
     path = ensure_video_dir(bvid, creator) / "summary.md"
     path.write_text(text, encoding="utf-8")
+    return path
+
+
+def save_ocr_text(bvid: str, text: str, creator: str | None = None) -> Path:
+    """Save the timestamped on-screen text (OCR results)."""
+    path = ensure_video_dir(bvid, creator) / "ocr_text.txt"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def save_frames_manifest(
+    bvid: str, results: list[dict], creator: str | None = None
+) -> Path:
+    """Save the per-frame OCR manifest (timestamp, file, text) as JSON."""
+    path = ensure_video_dir(bvid, creator) / "frames.json"
+    path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
 
 

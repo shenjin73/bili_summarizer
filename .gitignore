@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 videos/
 .DS_Store
+compare/
+
+# Local-only scratch — never publish:
+# benchmark/ vendors whisper.cpp plus ~3.9GB of model weights and test audio
+# (it also carries its own nested .git); photo/ holds personal screenshots.
+benchmark/
+photo/

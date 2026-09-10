@@ -156,23 +156,30 @@ def fetch_comments(bvid: str, page: int = 1, count: int = 20) -> list[dict]:
     return body.get("data", {}).get("replies", [])
 
 
-def fetch_audio_url(bvid: str, cid: int) -> str | None:
-    """Fetch the best-quality DASH audio stream URL for a video.
+def _fetch_dash_url(bvid: str, cid: int, qn: int) -> dict:
+    """Fetch the DASH manifest (audio + video streams) for a quality level.
 
-    Returns the download URL (str) or ``None`` if unavailable.
+    Returns the ``dash`` dict, or an empty dict when unavailable.
     """
     mixin_key, _ = _get_mixin_key()
     params = _wbi_sign(
-        {"bvid": bvid, "cid": cid, "qn": 64, "fnver": 0, "fnval": 4048, "fourk": 1},
+        {"bvid": bvid, "cid": cid, "qn": qn, "fnver": 0, "fnval": 4048, "fourk": 1},
         mixin_key,
     )
     resp = requests.get(API_PLAYURL, params=params, headers=HEADERS, timeout=15)
     resp.raise_for_status()
     body = resp.json()
     if body.get("code") != 0:
-        return None
+        return {}
+    return body.get("data", {}).get("dash", {})
 
-    dash = body.get("data", {}).get("dash", {})
+
+def fetch_audio_url(bvid: str, cid: int) -> str | None:
+    """Fetch the best-quality DASH audio stream URL for a video.
+
+    Returns the download URL (str) or ``None`` if unavailable.
+    """
+    dash = _fetch_dash_url(bvid, cid, qn=64)
     audio_items = dash.get("audio", [])
     if not audio_items:
         return None
@@ -183,8 +190,25 @@ def fetch_audio_url(bvid: str, cid: int) -> str | None:
     return url if url else None
 
 
-def download_audio(audio_url: str, output_path: "Path") -> "Path":
-    """Download an audio stream to *output_path*.
+def fetch_video_url(bvid: str, cid: int, qn: int = 64) -> str | None:
+    """Fetch the DASH video stream URL for a given quality.
+
+    ``qn``: 16=360p, 32=480p, 64=720p (default), 80=1080p.
+    Returns the download URL (str) or ``None`` if unavailable.
+    """
+    dash = _fetch_dash_url(bvid, cid, qn=qn)
+    video_items = dash.get("video", [])
+    if not video_items:
+        return None
+
+    # Pick the highest quality available at this level (largest bandwidth)
+    best = max(video_items, key=lambda v: v.get("bandwidth", 0))
+    url = best.get("baseUrl") or best.get("base_url") or best.get("url", "")
+    return url if url else None
+
+
+def download_stream(stream_url: str, output_path) -> "Path":
+    """Download a DASH stream (audio or video) to *output_path*.
 
     Uses appropriate headers to avoid 403 from CDN.  Returns the output path.
     """
@@ -199,7 +223,7 @@ def download_audio(audio_url: str, output_path: "Path") -> "Path":
         "Accept": "*/*",
     }
 
-    resp = requests.get(audio_url, headers=dl_headers, timeout=120, stream=True)
+    resp = requests.get(stream_url, headers=dl_headers, timeout=120, stream=True)
     resp.raise_for_status()
 
     with open(output_path, "wb") as f:
@@ -208,3 +232,8 @@ def download_audio(audio_url: str, output_path: "Path") -> "Path":
                 f.write(chunk)
 
     return output_path
+
+
+def download_audio(audio_url: str, output_path) -> "Path":
+    """Download an audio stream to *output_path* (kept for backwards compat)."""
+    return download_stream(audio_url, output_path)
